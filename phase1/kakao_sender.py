@@ -17,14 +17,16 @@ def send_kakao_message(room_title: str, text: str, retry: int = 3) -> bool:
 
     for attempt in range(1, retry + 1):
         try:
-            app = Application(backend="uia").connect(title=room_title)
+            app = Application(backend="uia").connect(title=room_title, timeout=5)
             win = app.window(title=room_title)
             win.set_focus()
             time.sleep(0.3)
 
             pyperclip.copy(text)
-            edit_ctrl = win.child_window(control_type="Edit")
-            edit_ctrl.set_focus()
+            # 카카오톡 입력창은 Document(RichEdit Control) 컨트롤이다.
+            edit_ctrl = win.child_window(title="RichEdit Control", control_type="Document")
+            edit_ctrl.click_input()
+            time.sleep(0.1)
             send_keys("^v")
             time.sleep(0.2)
             send_keys("{ENTER}")

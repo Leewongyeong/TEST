@@ -2,9 +2,11 @@
 Playwright로 쿠팡 파트너스 로그인 세션(storage_state.json)을 재사용해
 '간편 링크 만들기' 폼에 원본 URL을 입력하고 생성된 단축 링크를 가져온다.
 
-주의: 아래 selector(input[name="url"] 등)는 실제 파트너스 페이지 구조를
-Chrome 개발자도구로 확인한 뒤 맞춰야 하는 자리표시자다. 페이지 개편 시
-가장 먼저 깨지는 부분이므로, 동작하지 않으면 이 파일의 selector부터 점검한다.
+selector는 쿠팡 파트너스 '간편 링크 만들기' 페이지(Ant Design 기반)의 실제 값으로 맞춰져 있다.
+- URL 입력: id="url"
+- 링크 생성 버튼: 텍스트 "링크 생성"
+- 결과 링크: class "tracking-url-input"
+페이지가 개편되면 가장 먼저 깨지는 부분이므로, 동작하지 않으면 이 파일의 selector부터 점검한다.
 """
 
 from pathlib import Path
@@ -29,10 +31,19 @@ def create_partners_link(original_url: str, headless: bool = True) -> str:
         page = context.new_page()
 
         page.goto(PARTNERS_LINK_PAGE)
-        page.fill('input[name="url"]', original_url)
+        page.wait_for_selector("#url")
+        page.fill("#url", original_url)
         page.click('button:has-text("링크 생성")')
-        page.wait_for_selector(".generated-link-result")
-        short_link = page.inner_text(".generated-link-result").strip()
+
+        # 결과 영역(.tracking-url-input)이 새 단축 링크로 채워질 때까지 대기한다.
+        # 이전 값이 남아있을 수 있으므로 link.coupang.com 이 나타나는지 확인한다.
+        page.wait_for_function(
+            """() => {
+                const el = document.querySelector('.tracking-url-input');
+                return el && el.textContent.includes('link.coupang.com');
+            }"""
+        )
+        short_link = page.inner_text(".tracking-url-input").strip()
 
         context.storage_state(path=storage_state_path)
         browser.close()

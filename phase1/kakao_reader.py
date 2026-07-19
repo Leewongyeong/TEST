@@ -31,11 +31,17 @@ def _save_seen_state(state: dict) -> None:
 
 
 def _read_room_messages(room_title: str) -> list[str]:
-    win = Desktop(backend="uia").window(title=room_title, class_name="EVA_Window")
+    win = Desktop(backend="uia").window(title=room_title)
     win.set_focus()
-    list_ctrl = win.child_window(control_type="List")
-    items = list_ctrl.children(control_type="ListItem")
-    return [item.window_text() for item in items if item.window_text().strip()]
+    # 메시지가 그려지는 Pane. 이름 끝의 핸들값(_0x00010806 등)은 카톡 재실행 시
+    # 매번 바뀜므로, 앞부분(ChatRoomListCtrl)만 정규식으로 매칭한다.
+    msg_pane = win.child_window(control_type="Pane", title_re=r"ChatRoomListCtrl.*")
+    texts = []
+    for ctrl in msg_pane.descendants(control_type="Text"):
+        t = ctrl.window_text().strip()
+        if t:
+            texts.append(t)
+    return texts
 
 
 def parse_hotdeal_message(text: str) -> dict | None:
