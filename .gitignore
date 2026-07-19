@@ -1,0 +1,7 @@
+.env
+storage_state.json
+kakao_seen_state.json
+__pycache__/
+*.pyc
+venv/
+.venv/
